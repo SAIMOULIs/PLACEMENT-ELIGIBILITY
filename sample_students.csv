@@ -1,0 +1,11 @@
+name,roll_number,email,cgpa,backlogs,branch,skills,graduation_year,phone
+Ravi Kumar,22CS001,ravi@college.edu,8.5,0,CSE,"Python,Django,MySQL",2025,9876543210
+Priya Sharma,22IT002,priya@college.edu,7.8,0,IT,"Java,Spring,SQL",2025,9876543211
+Amit Singh,22ECE003,amit@college.edu,6.5,1,ECE,"C++,Embedded,MATLAB",2025,9876543212
+Neha Patel,22AIDS004,neha@college.edu,9.1,0,AIDS,"Python,ML,TensorFlow",2025,9876543213
+Suresh Rao,22ME005,suresh@college.edu,7.2,0,ME,"AutoCAD,SolidWorks",2025,9876543214
+Divya Reddy,22CSE006,divya@college.edu,8.9,0,CSE,"React,Node,MongoDB",2025,9876543215
+Karan Gupta,22IT007,karan@college.edu,6.0,2,IT,"PHP,MySQL",2025,9876543216
+Anjali Verma,22AIDS008,anjali@college.edu,9.5,0,AIDS,"Python,Deep Learning,NLP",2025,9876543217
+Mohammed Ali,22CS009,mali@college.edu,7.5,0,CSE,"Java,Spring,Docker",2025,9876543218
+Sita Devi,22ECE010,sita@college.edu,8.1,0,ECE,"VLSI,Verilog,Python",2025,9876543219

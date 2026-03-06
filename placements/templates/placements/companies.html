@@ -1,0 +1,190 @@
+{% extends "placements/base.html" %}
+{% block title %}Companies — PlaceTrack{% endblock %}
+{% block page_title %}Companies{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:flex-end;margin-bottom:20px">
+  <button class="btn btn-primary" onclick="document.getElementById('addCompanyModal').classList.add('open')">+ Add Company</button>
+</div>
+
+{% if companies %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px">
+  {% for c in companies %}
+  <div class="card" style="transition:transform .2s,box-shadow .2s" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 40px rgba(0,0,0,.12)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px">{{ c.name }}</div>
+        {% if c.job_role %}<div style="font-size:13px;color:var(--muted)">{{ c.job_role }}</div>{% endif %}
+      </div>
+      {% if c.package %}<span class="badge badge-green" style="font-size:13px">💰 {{ c.package }}</span>{% endif %}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:var(--surface);border-radius:8px;padding:10px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Min CGPA</div>
+        <div style="font-weight:700;font-size:18px;color:var(--accent)">{{ c.min_cgpa }}</div>
+      </div>
+      <div style="background:var(--surface);border-radius:8px;padding:10px;border:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Max Backlogs</div>
+        <div style="font-weight:700;font-size:18px;color:var(--warning)">{{ c.max_backlogs }}</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Eligible Branches</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        {% for b in c.branches_display %}
+        <span class="badge badge-blue">{{ b }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if c.required_skills %}
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Required Skills</div>
+      <div style="font-size:13px;color:var(--ink)">{{ c.required_skills }}</div>
+    </div>
+    {% endif %}
+
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:12px">
+      <span class="badge badge-purple">{{ c.shortlisted }} shortlisted</span>
+      <div style="display:flex;gap:8px">
+        <a href="/companies/{{ c.id }}/" class="btn btn-outline btn-sm">View</a>
+        <button class="btn btn-success btn-sm" onclick="generateShortlist({{ c.id }},'{{ c.name }}')">⚡ Generate</button>
+      </div>
+    </div>
+    {% if c.deadline %}
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">📅 Deadline: {{ c.deadline }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="icon">🏢</div>
+    <p>No companies added yet. Click "Add Company" to get started.</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Add Company Modal -->
+<div class="modal-overlay" id="addCompanyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Company Drive</div>
+      <button class="modal-close" onclick="document.getElementById('addCompanyModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="cFormMsg"></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Company Name *</label>
+          <input class="form-control" id="c_name" placeholder="e.g. Infosys">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Job Role</label>
+          <input class="form-control" id="c_role" placeholder="e.g. Software Engineer">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Min CGPA *</label>
+          <input class="form-control" type="number" id="c_cgpa" step="0.01" value="6.0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Backlogs *</label>
+          <input class="form-control" type="number" id="c_backlogs" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Package (LPA)</label>
+          <input class="form-control" id="c_package" placeholder="e.g. 6 LPA">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Eligible Year</label>
+          <input class="form-control" type="number" id="c_year" placeholder="e.g. 2025">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Deadline</label>
+          <input class="form-control" type="date" id="c_deadline">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Eligible Branches * (comma-separated)</label>
+        <input class="form-control" id="c_branches" placeholder="e.g. CSE,IT,AIDS,ECE">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Required Skills (comma-separated)</label>
+        <input class="form-control" id="c_skills" placeholder="e.g. Python,SQL,Django">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" id="c_desc" rows="2" placeholder="Brief description..."></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="submitCompany()">Add Company</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shortlist Result Modal -->
+<div class="modal-overlay" id="resultModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Shortlist Generated ✅</div>
+      <button class="modal-close" onclick="document.getElementById('resultModal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body" id="resultBody"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function generateShortlist(id, name){
+  const token = sessionStorage.getItem('jwt');
+  if(!token){showToast('Set JWT token in sessionStorage first');return;}
+  showToast('Generating shortlist for '+name+'...');
+  try{
+    const res = await fetch('/api/companies/'+id+'/generate_shortlist/',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token}
+    });
+    const data = await res.json();
+    if(res.ok){
+      document.getElementById('resultBody').innerHTML = `
+        <div style="display:grid;gap:12px">
+          <div class="stat-card blue"><div class="stat-icon blue">👨‍🎓</div><div><div class="stat-num">${data.eligible_students}</div><div class="stat-label">Eligible Students</div></div></div>
+          <div style="background:var(--surface);border-radius:10px;padding:16px;border:1px solid var(--border)">
+            <div style="font-weight:700;margin-bottom:8px">Rules Applied</div>
+            <div style="font-size:13px;color:var(--muted)">
+              Min CGPA: <strong>${data.rules_applied.min_cgpa}</strong> · 
+              Max Backlogs: <strong>${data.rules_applied.max_backlogs}</strong> · 
+              Branches: <strong>${data.rules_applied.eligible_branches.join(', ')}</strong>
+            </div>
+          </div>
+          <a href="/shortlists/?company=${id}" class="btn btn-primary" style="width:100%">View Shortlist →</a>
+        </div>`;
+      document.getElementById('resultModal').classList.add('open');
+    }else{showToast('Error: '+JSON.stringify(data));}
+  }catch(e){showToast('Error: '+e.message);}
+}
+
+async function submitCompany(){
+  const token = sessionStorage.getItem('jwt');
+  if(!token){document.getElementById('cFormMsg').innerHTML='<div class="alert alert-error">Set JWT in sessionStorage first</div>';return;}
+  const payload={
+    name:document.getElementById('c_name').value,
+    job_role:document.getElementById('c_role').value,
+    min_cgpa:parseFloat(document.getElementById('c_cgpa').value)||6,
+    max_backlogs:parseInt(document.getElementById('c_backlogs').value)||0,
+    package:document.getElementById('c_package').value,
+    eligible_year:document.getElementById('c_year').value||null,
+    deadline:document.getElementById('c_deadline').value||null,
+    eligible_branches:document.getElementById('c_branches').value,
+    required_skills:document.getElementById('c_skills').value,
+    description:document.getElementById('c_desc').value,
+  };
+  const res=await fetch('/api/companies/',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
+  if(res.ok){showToast('Company added!');location.reload();}
+  else{const e=await res.json();document.getElementById('cFormMsg').innerHTML='<div class="alert alert-error">'+JSON.stringify(e)+'</div>';}
+}
+</script>
+{% endblock %}

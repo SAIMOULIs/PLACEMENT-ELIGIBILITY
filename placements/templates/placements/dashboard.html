@@ -1,0 +1,146 @@
+{% extends "placements/base.html" %}
+{% block title %}Dashboard — PlaceTrack{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-icon blue">👨‍🎓</div>
+    <div>
+      <div class="stat-num">{{ total_students }}</div>
+      <div class="stat-label">Total Students</div>
+    </div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-icon purple">🏢</div>
+    <div>
+      <div class="stat-num">{{ total_companies }}</div>
+      <div class="stat-label">Companies</div>
+    </div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green">📋</div>
+    <div>
+      <div class="stat-num">{{ total_shortlists }}</div>
+      <div class="stat-label">Shortlisted</div>
+    </div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-icon orange">⭐</div>
+    <div>
+      <div class="stat-num">{{ avg_cgpa|floatformat:2|default:"0.00" }}</div>
+      <div class="stat-label">Avg CGPA</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Branch Distribution -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Branch Distribution</div>
+        <div class="card-subtitle">Students by branch</div>
+      </div>
+    </div>
+    {% if branch_dist %}
+    <div style="display:flex;flex-direction:column;gap:10px">
+      {% for b in branch_dist %}
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span style="font-weight:600">{{ b.branch }}</span>
+          <span style="color:var(--muted)">{{ b.count }}</span>
+        </div>
+        <div style="height:8px;background:var(--surface);border-radius:4px;overflow:hidden">
+          <div style="height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:{% widthratio b.count total_students 100 %}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="icon">📊</div><p>No student data yet</p></div>
+    {% endif %}
+  </div>
+
+  <!-- Recent Companies -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Recent Companies</div>
+        <div class="card-subtitle">Latest drives added</div>
+      </div>
+      <a href="/companies/" class="btn btn-outline btn-sm">View All</a>
+    </div>
+    {% if recent_companies %}
+    <div style="display:flex;flex-direction:column;gap:8px">
+      {% for c in recent_companies %}
+      <a href="/companies/{{ c.id }}/" style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface);border-radius:8px;border:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600;font-size:14px">{{ c.name }}</div>
+          <div style="font-size:12px;color:var(--muted)">{{ c.package|default:"Package TBD" }}</div>
+        </div>
+        <span class="badge badge-green">{{ c.shortlisted }} shortlisted</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state"><div class="icon">🏢</div><p>No companies yet</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- System Logs -->
+<div class="card" style="margin-top:24px">
+  <div class="card-header">
+    <div class="card-title">Recent Activity</div>
+  </div>
+  {% if recent_logs %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th><th>Message</th><th>User</th><th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in recent_logs %}
+        <tr>
+          <td>
+            {% if log.log_type == 'upload' %}<span class="badge badge-blue">📤 Upload</span>
+            {% elif log.log_type == 'shortlist' %}<span class="badge badge-green">📋 Shortlist</span>
+            {% elif log.log_type == 'error' %}<span class="badge badge-red">❌ Error</span>
+            {% else %}<span class="badge badge-gray">{{ log.log_type }}</span>{% endif %}
+          </td>
+          <td class="td-muted">{{ log.message|truncatechars:80 }}</td>
+          <td>{{ log.user|default:"System" }}</td>
+          <td class="td-muted">{{ log.created_at|timesince }} ago</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="icon">📝</div><p>No activity logged yet</p></div>
+  {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="grid-3" style="margin-top:24px">
+  <a href="/upload/" class="card" style="cursor:pointer;text-align:center;transition:transform .2s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+    <div style="font-size:32px;margin-bottom:8px">📤</div>
+    <div style="font-weight:700;font-family:'Syne',sans-serif">Upload Students</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">Bulk import via CSV/Excel</div>
+  </a>
+  <a href="/companies/" class="card" style="cursor:pointer;text-align:center;transition:transform .2s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+    <div style="font-size:32px;margin-bottom:8px">🏢</div>
+    <div style="font-weight:700;font-family:'Syne',sans-serif">Add Company</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">Define eligibility rules</div>
+  </a>
+  <a href="/shortlists/" class="card" style="cursor:pointer;text-align:center;transition:transform .2s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform=''">
+    <div style="font-size:32px;margin-bottom:8px">📋</div>
+    <div style="font-weight:700;font-family:'Syne',sans-serif">View Shortlists</div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">Export eligible candidates</div>
+  </a>
+</div>
+{% endblock %}

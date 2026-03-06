@@ -1,0 +1,166 @@
+{% extends "placements/base.html" %}
+{% block title %}Upload — PlaceTrack{% endblock %}
+{% block page_title %}Bulk Upload{% endblock %}
+
+{% block content %}
+<div class="grid-2">
+  <!-- Upload Form -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:8px">Upload Student Data</div>
+    <div class="card-subtitle" style="margin-bottom:20px">Supports CSV and Excel (.xlsx) files</div>
+
+    <div id="uploadMsg"></div>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📂</div>
+      <div style="font-weight:700;font-size:16px;margin-bottom:6px">Drop file here or click to browse</div>
+      <div style="color:var(--muted);font-size:13px">Supports: CSV, XLSX, XLS</div>
+      <div id="fileName" style="margin-top:10px;color:var(--accent);font-weight:600"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="fileSelected(event)">
+
+    <div style="margin-top:16px">
+      <button class="btn btn-primary" style="width:100%" onclick="uploadFile()" id="uploadBtn" disabled>📤 Upload Students</button>
+    </div>
+    <div id="uploadProgress" style="margin-top:12px;display:none">
+      <div style="height:8px;background:var(--surface);border-radius:4px;overflow:hidden">
+        <div id="progressBar" style="height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .5s;border-radius:4px"></div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-top:6px;text-align:center" id="progressText">Uploading...</div>
+    </div>
+  </div>
+
+  <!-- CSV Format Guide -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px">📋 Required CSV Format</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Example</th><th>Required</th></tr></thead>
+        <tbody>
+          <tr><td class="td-bold">name</td><td class="td-muted">Ravi Kumar</td><td><span class="badge badge-red">Yes</span></td></tr>
+          <tr><td class="td-bold">roll_number</td><td class="td-muted">22CS001</td><td><span class="badge badge-red">Yes</span></td></tr>
+          <tr><td class="td-bold">email</td><td class="td-muted">ravi@college.edu</td><td><span class="badge badge-red">Yes</span></td></tr>
+          <tr><td class="td-bold">cgpa</td><td class="td-muted">8.5</td><td><span class="badge badge-red">Yes</span></td></tr>
+          <tr><td class="td-bold">backlogs</td><td class="td-muted">0</td><td><span class="badge badge-green">No</span></td></tr>
+          <tr><td class="td-bold">branch</td><td class="td-muted">CSE</td><td><span class="badge badge-red">Yes</span></td></tr>
+          <tr><td class="td-bold">skills</td><td class="td-muted">Python,Django,SQL</td><td><span class="badge badge-green">No</span></td></tr>
+          <tr><td class="td-bold">graduation_year</td><td class="td-muted">2025</td><td><span class="badge badge-red">Yes</span></td></tr>
+          <tr><td class="td-bold">phone</td><td class="td-muted">9876543210</td><td><span class="badge badge-green">No</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:16px">
+      <button class="btn btn-outline btn-sm" onclick="downloadSample()">⬇ Download Sample CSV</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload History -->
+<div class="card" style="margin-top:24px">
+  <div class="card-header">
+    <div class="card-title">Upload History</div>
+  </div>
+  {% if batches %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>File</th><th>Uploaded By</th><th>Time</th><th>Total</th><th>Success</th><th>Failed</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for b in batches %}
+        <tr>
+          <td class="td-bold">{{ b.file_name }}</td>
+          <td>{{ b.uploaded_by|default:"—" }}</td>
+          <td class="td-muted">{{ b.upload_time|timesince }} ago</td>
+          <td>{{ b.total_records }}</td>
+          <td><span class="badge badge-green">{{ b.success_records }}</span></td>
+          <td><span class="badge {% if b.failed_records > 0 %}badge-red{% else %}badge-gray{% endif %}">{{ b.failed_records }}</span></td>
+          <td>
+            {% if b.status == 'completed' %}<span class="badge badge-green">✅ Completed</span>
+            {% elif b.status == 'failed' %}<span class="badge badge-red">❌ Failed</span>
+            {% else %}<span class="badge badge-orange">⏳ Processing</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="icon">📂</div><p>No uploads yet</p></div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedFile = null;
+
+function fileSelected(e){
+  selectedFile = e.target.files[0];
+  document.getElementById('fileName').textContent = '📄 ' + selectedFile.name;
+  document.getElementById('uploadBtn').disabled = false;
+}
+
+// Drag-drop support
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('drop', e=>{
+  const file = e.dataTransfer.files[0];
+  if(file){
+    selectedFile = file;
+    document.getElementById('fileName').textContent = '📄 '+file.name;
+    document.getElementById('uploadBtn').disabled = false;
+  }
+});
+
+async function uploadFile(){
+  const token = sessionStorage.getItem('jwt');
+  if(!token){
+    document.getElementById('uploadMsg').innerHTML='<div class="alert alert-error">⚠️ You need a JWT token. Get one from POST /api/token/ and store it: sessionStorage.setItem("jwt","YOUR_TOKEN")</div>';
+    return;
+  }
+  if(!selectedFile) return;
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+  document.getElementById('uploadProgress').style.display='block';
+  document.getElementById('progressBar').style.width='30%';
+  document.getElementById('progressText').textContent='Uploading file...';
+  document.getElementById('uploadBtn').disabled=true;
+
+  try{
+    const res = await fetch('/api/students/upload/', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token},
+      body: formData
+    });
+    document.getElementById('progressBar').style.width='100%';
+    const data = await res.json();
+    if(res.ok){
+      document.getElementById('progressText').textContent='Done!';
+      document.getElementById('uploadMsg').innerHTML=`
+        <div class="alert alert-success">
+          ✅ Upload complete! <strong>${data.success}</strong> records imported, <strong>${data.failed}</strong> failed.
+          ${data.errors.length?'<br><small>Errors: '+data.errors.slice(0,3).join('; ')+'</small>':''}
+        </div>`;
+      setTimeout(()=>location.reload(),2000);
+    }else{
+      document.getElementById('uploadMsg').innerHTML='<div class="alert alert-error">'+JSON.stringify(data)+'</div>';
+    }
+  }catch(e){
+    document.getElementById('uploadMsg').innerHTML='<div class="alert alert-error">Error: '+e.message+'</div>';
+  }
+  document.getElementById('uploadBtn').disabled=false;
+}
+
+function downloadSample(){
+  const csv = `name,roll_number,email,cgpa,backlogs,branch,skills,graduation_year,phone
+Ravi Kumar,22CS001,ravi@college.edu,8.5,0,CSE,"Python,Django,MySQL",2025,9876543210
+Priya Sharma,22IT002,priya@college.edu,7.8,0,IT,"Java,Spring,SQL",2025,9876543211
+Amit Singh,22ECE003,amit@college.edu,6.5,1,ECE,"C++,Embedded,MATLAB",2025,9876543212
+Neha Patel,22AIDS004,neha@college.edu,9.1,0,AIDS,"Python,ML,TensorFlow",2025,9876543213`;
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'sample_students.csv';
+  a.click();
+}
+</script>
+{% endblock %}

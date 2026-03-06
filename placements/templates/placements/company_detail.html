@@ -1,0 +1,133 @@
+{% extends "placements/base.html" %}
+{% block title %}{{ company.name }} — PlaceTrack{% endblock %}
+{% block page_title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="grid-2" style="margin-bottom:24px">
+  <!-- Company Info -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px">Company Details</div>
+    <div style="display:grid;gap:10px">
+      {% if company.job_role %}
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Role</span><strong>{{ company.job_role }}</strong></div>
+      {% endif %}
+      {% if company.package %}
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Package</span><span class="badge badge-green">{{ company.package }}</span></div>
+      {% endif %}
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Min CGPA</span><strong style="color:var(--accent)">{{ company.min_cgpa }}</strong></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Max Backlogs</span><strong style="color:var(--warning)">{{ company.max_backlogs }}</strong></div>
+      {% if company.eligible_year %}
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Grad Year</span><strong>{{ company.eligible_year }}</strong></div>
+      {% endif %}
+      {% if company.deadline %}
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Deadline</span><strong>{{ company.deadline }}</strong></div>
+      {% endif %}
+      <div>
+        <div style="color:var(--muted);margin-bottom:6px">Eligible Branches</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          {% for b in company.branches_display %}
+          <span class="badge badge-blue">{{ b }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% if company.required_skills %}
+      <div>
+        <div style="color:var(--muted);margin-bottom:6px">Required Skills</div>
+        <div style="font-size:13px">{{ company.required_skills }}</div>
+      </div>
+      {% endif %}
+    </div>
+    <div style="margin-top:20px;display:flex;gap:8px">
+      <button class="btn btn-success" onclick="genShortlist()">⚡ Generate Shortlist</button>
+      <a href="/api/shortlists/export/?company={{ company.id }}" class="btn btn-outline">⬇ Export CSV</a>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="stat-card green">
+      <div class="stat-icon green">📋</div>
+      <div>
+        <div class="stat-num">{{ shortlists|length }}</div>
+        <div class="stat-label">Total Shortlisted</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <div id="genResult"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Shortlist Table -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Shortlisted Candidates</div>
+      <div class="card-subtitle">Run eligibility engine to populate</div>
+    </div>
+    <a href="/api/shortlists/export/?company={{ company.id }}" class="btn btn-outline btn-sm">⬇ Export</a>
+  </div>
+  {% if shortlists %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Roll No.</th><th>Name</th><th>Branch</th><th>CGPA</th><th>Backlogs</th><th>Skills</th><th>Status</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for sl in shortlists %}
+        <tr>
+          <td class="td-bold">{{ sl.student.roll_number }}</td>
+          <td>
+            <div style="font-weight:600">{{ sl.student.name }}</div>
+            <div style="font-size:12px;color:var(--muted)">{{ sl.student.email }}</div>
+          </td>
+          <td><span class="badge badge-blue">{{ sl.student.branch }}</span></td>
+          <td style="font-weight:700;color:var(--success)">{{ sl.student.cgpa }}</td>
+          <td>{% if sl.student.backlogs == 0 %}<span class="badge badge-green">0</span>{% else %}<span class="badge badge-red">{{ sl.student.backlogs }}</span>{% endif %}</td>
+          <td class="td-muted" style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sl.student.skills|default:"—" }}</td>
+          <td>
+            {% if sl.status == 'shortlisted' %}<span class="badge badge-blue">Shortlisted</span>
+            {% elif sl.status == 'selected' %}<span class="badge badge-green">Selected</span>
+            {% elif sl.status == 'rejected' %}<span class="badge badge-red">Rejected</span>
+            {% else %}<span class="badge badge-gray">{{ sl.status }}</span>{% endif %}
+          </td>
+          <td class="td-muted">{{ sl.shortlisted_at|date:"d M Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">📋</div>
+    <p>No shortlist yet. Click <strong>Generate Shortlist</strong> to run the eligibility engine.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function genShortlist(){
+  const token = sessionStorage.getItem('jwt');
+  if(!token){showToast('Set JWT in sessionStorage first!');return;}
+  document.getElementById('genResult').innerHTML='<div style="color:var(--muted);font-size:14px">⏳ Running eligibility engine...</div>';
+  const res = await fetch('/api/companies/{{ company.id }}/generate_shortlist/',{
+    method:'POST',headers:{'Authorization':'Bearer '+token}
+  });
+  const data = await res.json();
+  if(res.ok){
+    document.getElementById('genResult').innerHTML=`
+      <div style="color:var(--success);font-weight:700;font-size:18px;margin-bottom:8px">✅ Done!</div>
+      <div style="font-size:14px;color:var(--muted)">
+        <strong style="color:var(--ink)">${data.eligible_students}</strong> eligible out of 
+        <strong style="color:var(--ink)">${data.total_students_checked}</strong> total students.<br>
+        <strong style="color:var(--ink)">${data.new_shortlist_records}</strong> new records created.
+      </div>`;
+    setTimeout(()=>location.reload(),1500);
+  }else{
+    document.getElementById('genResult').innerHTML='<div class="alert alert-error">'+JSON.stringify(data)+'</div>';
+  }
+}
+</script>
+{% endblock %}

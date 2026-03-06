@@ -1,0 +1,67 @@
+{% extends "placements/base.html" %}
+{% block title %}Shortlists — PlaceTrack{% endblock %}
+{% block page_title %}Shortlists{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+  <form method="GET" style="display:flex;gap:10px;flex:1;flex-wrap:wrap">
+    <select class="form-control" name="company" onchange="this.form.submit()" style="max-width:220px">
+      <option value="">All Companies</option>
+      {% for c in companies %}
+      <option value="{{ c.id }}" {% if selected_company == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% if selected_company %}
+  <a href="/api/shortlists/export/?company={{ selected_company }}" class="btn btn-outline">⬇ Export CSV</a>
+  {% else %}
+  <a href="/api/shortlists/export/" class="btn btn-outline">⬇ Export All</a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Shortlisted Candidates</div>
+      <div class="card-subtitle">{{ shortlists|length }} records</div>
+    </div>
+  </div>
+  {% if shortlists %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Student</th><th>Roll No.</th><th>Branch</th><th>CGPA</th><th>Company</th><th>Status</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for sl in shortlists %}
+        <tr>
+          <td>
+            <div style="font-weight:600">{{ sl.student.name }}</div>
+            <div style="font-size:12px;color:var(--muted)">{{ sl.student.email }}</div>
+          </td>
+          <td class="td-bold">{{ sl.student.roll_number }}</td>
+          <td><span class="badge badge-blue">{{ sl.student.branch }}</span></td>
+          <td style="font-weight:700;color:var(--success)">{{ sl.student.cgpa }}</td>
+          <td>
+            <a href="/companies/{{ sl.company.id }}/" style="color:var(--accent);font-weight:600">{{ sl.company.name }}</a>
+          </td>
+          <td>
+            {% if sl.status == 'shortlisted' %}<span class="badge badge-blue">Shortlisted</span>
+            {% elif sl.status == 'selected' %}<span class="badge badge-green">Selected</span>
+            {% elif sl.status == 'rejected' %}<span class="badge badge-red">Rejected</span>
+            {% else %}<span class="badge badge-gray">{{ sl.status }}</span>{% endif %}
+          </td>
+          <td class="td-muted">{{ sl.shortlisted_at|date:"d M Y" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">📋</div>
+    <p>No shortlists yet. Go to a company and run the eligibility engine.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
