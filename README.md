@@ -163,14 +163,14 @@ curl -H "Authorization: Bearer YOUR_TOKEN" http://127.0.0.1:8000/api/dashboard/
 
 | Column | Required | Example |
 |--------|----------|---------|
-| name | ✅ | Ravi Kumar |
-| roll_number | ✅ | 22CS001 |
-| email | ✅ | ravi@college.edu |
-| cgpa | ✅ | 8.5 |
+| name | ✅ | SAIMOULI |
+| roll_number | ✅ | 22KD1A0 |
+| email | ✅ | 22kd1a0@college.edu |
+| cgpa | ✅ | 8.57 |
 | backlogs | No | 0 |
 | branch | ✅ | CSE |
 | skills | No | Python,Django,SQL |
-| graduation_year | ✅ | 2025 |
+| graduation_year | ✅ | 2026 |
 | phone | No | 9876543210 |
 
 Download sample CSV from the Upload page.
@@ -214,10 +214,3 @@ placement_system/
             ├── company_detail.html
             ├── shortlists.html
             └── upload.html
-```
-
----
-
-## 💼 Resume Description
-
-> Designed and implemented a scalable **Placement Eligibility & Auto-Shortlisting System** using Django REST Framework and MySQL, featuring bulk CSV/Excel data ingestion, a dynamic multi-rule eligibility engine, JWT-based role authentication, REST API with pagination/filtering, and an interactive HTML/CSS dashboard.
