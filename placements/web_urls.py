@@ -1,14 +1,17 @@
 from django.urls import path
-from . import web_views
+from . import web_views, officer_access
 
 urlpatterns = [
     path('', web_views.landing_view, name='landing'),
     path('demo/', web_views.demo_view, name='demo'),
     path('login/', web_views.login_view, name='login'),
-    path('request-officer-access/', web_views.officer_access_request_view, name='officer_access_request'),
-    path('signup/', web_views.officer_access_request_view, name='signup'),
+    path('request-officer-access/', officer_access.request_access, name='officer_access_request'),
+    path('signup/', officer_access.request_access, name='signup'),
     path('logout/', web_views.logout_view, name='logout'),
-    path('dashboard/', web_views.dashboard, name='dashboard'),
+    path('dashboard/', officer_access.dashboard_gate, name='dashboard'),
+    path('admin/officer-requests/', officer_access.officer_requests, name='officer_requests'),
+    path('admin/officer-requests/<int:pk>/approve/', officer_access.approve_request, name='approve_officer_request'),
+    path('admin/officer-requests/<int:pk>/reject/', officer_access.reject_request, name='reject_officer_request'),
     path('students/', web_views.students_list, name='students'),
     path('companies/', web_views.companies_list, name='companies'),
     path('companies/<int:pk>/', web_views.company_detail, name='company_detail'),
