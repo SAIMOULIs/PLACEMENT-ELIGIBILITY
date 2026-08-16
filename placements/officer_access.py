@@ -1,9 +1,23 @@
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from .models import OfficerAccessRequest, User
 from . import web_views
+
+
+def login_officer(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    error = None
+    if request.method == 'POST':
+        user = authenticate(request, username=request.POST.get('username', '').strip(), password=request.POST.get('password', ''))
+        if user and (user.is_superuser or user.is_staff or user.role == 'officer'):
+            auth_login(request, user)
+            return redirect('dashboard')
+        error = 'Invalid credentials or your Placement Officer access has not been approved.'
+    return render(request, 'placements/login.html', {'error': error})
 
 
 def request_access(request):
@@ -23,7 +37,6 @@ def request_access(request):
         elif User.objects.filter(email__iexact=email).exists(): error = 'That email address is already registered.'
         else:
             try:
-                # Privileged role is inactive until an administrator approves it.
                 user = User.objects.create_user(username=username, email=email, password=password, role='officer', is_active=False)
                 OfficerAccessRequest.objects.create(user=user, full_name=full_name, institution=institution, designation=designation, phone=phone, reason=reason)
                 return render(request, 'placements/officer_request_submitted.html', {'full_name': full_name})
@@ -67,5 +80,6 @@ def reject_request(request, pk):
 def dashboard_gate(request):
     user = request.user
     if not (user.is_superuser or user.is_staff or user.role == 'officer'):
+        auth_logout(request)
         return render(request, 'placements/access_denied.html', {'message': 'This application is for authorized Placement Officers. Request access from the public site.'}, status=403)
     return web_views.dashboard(request)
