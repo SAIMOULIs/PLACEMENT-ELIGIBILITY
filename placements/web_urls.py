@@ -4,7 +4,7 @@ from . import web_views, officer_access
 urlpatterns = [
     path('', web_views.landing_view, name='landing'),
     path('demo/', web_views.demo_view, name='demo'),
-    path('login/', web_views.login_view, name='login'),
+    path('login/', officer_access.login_officer, name='login'),
     path('request-officer-access/', officer_access.request_access, name='officer_access_request'),
     path('signup/', officer_access.request_access, name='signup'),
     path('logout/', web_views.logout_view, name='logout'),
