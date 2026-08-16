@@ -15,6 +15,8 @@ services:
         generateValue: true
       - key: DEBUG
         value: "False"
+      - key: PYTHON_VERSION
+        value: "3.12.13"
       - key: WEB_CONCURRENCY
         value: "2"
 
