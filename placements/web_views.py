@@ -5,6 +5,28 @@ from django.db.models import Count, Avg, Q
 from .models import Student, Company, Shortlist, UploadBatch, SystemLog
 
 
+def landing_view(request):
+    """Public recruiter-facing landing page. No private database data is exposed."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, 'placements/landing.html')
+
+
+def demo_view(request):
+    """Public read-only product demo using clearly labeled sample data."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    demo_companies = [
+        {'name': 'TechNova Solutions', 'package': '8.5 LPA', 'eligible': 186, 'shortlisted': 42, 'rule': 'CGPA ≥ 7.0 · ≤ 2 backlogs'},
+        {'name': 'CloudSphere Labs', 'package': '10.0 LPA', 'eligible': 142, 'shortlisted': 35, 'rule': 'CGPA ≥ 7.5 · CSE/IT'},
+        {'name': 'DataForge Systems', 'package': '7.2 LPA', 'eligible': 211, 'shortlisted': 50, 'rule': 'CGPA ≥ 6.5 · Python/SQL'},
+    ]
+    return render(request, 'placements/demo.html', {
+        'stats': {'students': 500, 'companies': 12, 'shortlisted': 127, 'avg_cgpa': '7.84'},
+        'demo_companies': demo_companies,
+    })
+
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -22,7 +44,7 @@ def login_view(request):
 
 def logout_view(request):
     auth_logout(request)
-    return redirect('login')
+    return redirect('landing')
 
 
 @login_required
