@@ -9,14 +9,12 @@ from .models import Student, Company, Shortlist, UploadBatch, SystemLog
 
 
 def landing_view(request):
-    """Public product landing page. No private database data is exposed."""
     if request.user.is_authenticated:
         return redirect('dashboard')
     return render(request, 'placements/landing.html')
 
 
 def demo_view(request):
-    """Public read-only product demo using clearly labeled sample data."""
     if request.user.is_authenticated:
         return redirect('dashboard')
     demo_companies = [
@@ -24,10 +22,7 @@ def demo_view(request):
         {'name': 'CloudSphere Labs', 'package': '10.0 LPA', 'eligible': 142, 'shortlisted': 35, 'rule': 'CGPA ≥ 7.5 · CSE/IT'},
         {'name': 'DataForge Systems', 'package': '7.2 LPA', 'eligible': 211, 'shortlisted': 50, 'rule': 'CGPA ≥ 6.5 · Python/SQL'},
     ]
-    return render(request, 'placements/demo.html', {
-        'stats': {'students': 500, 'companies': 12, 'shortlisted': 127, 'avg_cgpa': '7.84'},
-        'demo_companies': demo_companies,
-    })
+    return render(request, 'placements/demo.html', {'stats': {'students': 500, 'companies': 12, 'shortlisted': 127, 'avg_cgpa': '7.84'}, 'demo_companies': demo_companies})
 
 
 def login_view(request):
@@ -35,21 +30,17 @@ def login_view(request):
         return redirect('dashboard')
     error = None
     if request.method == 'POST':
-        user = authenticate(request,
-                            username=request.POST.get('username', '').strip(),
-                            password=request.POST.get('password', ''))
+        user = authenticate(request, username=request.POST.get('username', '').strip(), password=request.POST.get('password', ''))
         if user:
             auth_login(request, user)
             return redirect('dashboard')
-        error = 'Invalid username or password.'
+        error = 'Invalid username or password, or your account is awaiting approval.'
     return render(request, 'placements/login.html', {'error': error})
 
 
 def signup_view(request):
-    """Create a normal application account; administrator accounts are never created here."""
     if request.user.is_authenticated:
         return redirect('dashboard')
-
     error = None
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
@@ -57,7 +48,6 @@ def signup_view(request):
         password = request.POST.get('password', '')
         confirm_password = request.POST.get('confirm_password', '')
         role = request.POST.get('role', 'student')
-
         if not username or not email or not password:
             error = 'Please complete all required fields.'
         elif len(username) < 3:
@@ -78,12 +68,15 @@ def signup_view(request):
                 group_name = 'Students' if role == 'student' else 'Placement Officers'
                 group, _ = Group.objects.get_or_create(name=group_name)
                 user.groups.add(group)
+                if role == 'placement_officer':
+                    user.is_active = False
+                    user.save(update_fields=['is_active'])
+                    return render(request, 'placements/signup_pending.html')
                 auth_login(request, user)
                 messages.success(request, 'Your PlaceTrack account has been created successfully.')
                 return redirect('dashboard')
             except IntegrityError:
                 error = 'Unable to create the account. Please try again.'
-
     return render(request, 'placements/signup.html', {'error': error})
 
 
@@ -94,38 +87,34 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
+    is_officer = request.user.is_superuser or request.user.is_staff or request.user.groups.filter(name='Placement Officers').exists()
+    if not is_officer:
+        return render(request, 'placements/student_dashboard.html', {'username': request.user.get_full_name() or request.user.username})
     ctx = {
-        'total_students':   Student.objects.count(),
-        'total_companies':  Company.objects.count(),
+        'total_students': Student.objects.count(),
+        'total_companies': Company.objects.count(),
         'total_shortlists': Shortlist.objects.count(),
-        'total_batches':    UploadBatch.objects.count(),
-        'avg_cgpa':         Student.objects.aggregate(avg=Avg('cgpa'))['avg'],
-        'branch_dist':      Student.objects.values('branch').annotate(count=Count('id')).order_by('-count'),
+        'total_batches': UploadBatch.objects.count(),
+        'avg_cgpa': Student.objects.aggregate(avg=Avg('cgpa'))['avg'],
+        'branch_dist': Student.objects.values('branch').annotate(count=Count('id')).order_by('-count'),
         'recent_companies': Company.objects.annotate(shortlisted=Count('shortlists')).order_by('-created_at')[:5],
-        'recent_logs':      SystemLog.objects.all()[:8],
+        'recent_logs': SystemLog.objects.all()[:8],
     }
     return render(request, 'placements/dashboard.html', ctx)
 
 
 @login_required
 def students_list(request):
-    qs     = Student.objects.all()
+    if not (request.user.is_superuser or request.user.is_staff or request.user.groups.filter(name='Placement Officers').exists()):
+        return redirect('dashboard')
+    qs = Student.objects.all()
     branch = request.GET.get('branch', '')
-    year   = request.GET.get('year', '')
+    year = request.GET.get('year', '')
     search = request.GET.get('search', '')
-    if branch:
-        qs = qs.filter(branch=branch)
-    if year:
-        qs = qs.filter(graduation_year=year)
-    if search:
-        qs = qs.filter(Q(name__icontains=search) | Q(roll_number__icontains=search))
-    return render(request, 'placements/students.html', {
-        'students': qs[:200],
-        'branch':   branch,
-        'year':     year,
-        'search':   search,
-        'branches': Student.BRANCH_CHOICES,
-    })
+    if branch: qs = qs.filter(branch=branch)
+    if year: qs = qs.filter(graduation_year=year)
+    if search: qs = qs.filter(Q(name__icontains=search) | Q(roll_number__icontains=search))
+    return render(request, 'placements/students.html', {'students': qs[:200], 'branch': branch, 'year': year, 'search': search, 'branches': Student.BRANCH_CHOICES})
 
 
 def _add_branches(companies_qs):
@@ -138,12 +127,14 @@ def _add_branches(companies_qs):
 
 @login_required
 def companies_list(request):
+    if not (request.user.is_superuser or request.user.is_staff or request.user.groups.filter(name='Placement Officers').exists()): return redirect('dashboard')
     companies = Company.objects.annotate(shortlisted=Count('shortlists')).order_by('-created_at')
     return render(request, 'placements/companies.html', {'companies': _add_branches(companies)})
 
 
 @login_required
 def company_detail(request, pk):
+    if not (request.user.is_superuser or request.user.is_staff or request.user.groups.filter(name='Placement Officers').exists()): return redirect('dashboard')
     company = get_object_or_404(Company, pk=pk)
     shortlists = Shortlist.objects.filter(company=company).select_related('student')
     company.branches_display = [b.strip() for b in company.eligible_branches.split(',') if b.strip()]
@@ -152,16 +143,14 @@ def company_detail(request, pk):
 
 @login_required
 def shortlists_view(request):
+    if not (request.user.is_superuser or request.user.is_staff or request.user.groups.filter(name='Placement Officers').exists()): return redirect('dashboard')
     shortlists = Shortlist.objects.select_related('student', 'company').all()
     company_id = request.GET.get('company', '')
-    if company_id:
-        shortlists = shortlists.filter(company_id=company_id)
-    return render(request, 'placements/shortlists.html', {
-        'shortlists': shortlists[:300], 'companies': Company.objects.all(), 'selected_company': company_id,
-    })
+    if company_id: shortlists = shortlists.filter(company_id=company_id)
+    return render(request, 'placements/shortlists.html', {'shortlists': shortlists[:300], 'companies': Company.objects.all(), 'selected_company': company_id})
 
 
 @login_required
 def upload_view(request):
-    batches = UploadBatch.objects.all()
-    return render(request, 'placements/upload.html', {'batches': batches})
+    if not (request.user.is_superuser or request.user.is_staff or request.user.groups.filter(name='Placement Officers').exists()): return redirect('dashboard')
+    return render(request, 'placements/upload.html', {'batches': UploadBatch.objects.all()})
