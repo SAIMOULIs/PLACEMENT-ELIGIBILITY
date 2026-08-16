@@ -1,12 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User, Group
+from django.contrib import messages
+from django.db import IntegrityError
 from django.db.models import Count, Avg, Q
 from .models import Student, Company, Shortlist, UploadBatch, SystemLog
 
 
 def landing_view(request):
-    """Public recruiter-facing landing page. No private database data is exposed."""
+    """Public product landing page. No private database data is exposed."""
     if request.user.is_authenticated:
         return redirect('dashboard')
     return render(request, 'placements/landing.html')
@@ -33,13 +36,55 @@ def login_view(request):
     error = None
     if request.method == 'POST':
         user = authenticate(request,
-                            username=request.POST['username'],
-                            password=request.POST['password'])
+                            username=request.POST.get('username', '').strip(),
+                            password=request.POST.get('password', ''))
         if user:
             auth_login(request, user)
             return redirect('dashboard')
         error = 'Invalid username or password.'
     return render(request, 'placements/login.html', {'error': error})
+
+
+def signup_view(request):
+    """Create a normal application account; administrator accounts are never created here."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    error = None
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+        role = request.POST.get('role', 'student')
+
+        if not username or not email or not password:
+            error = 'Please complete all required fields.'
+        elif len(username) < 3:
+            error = 'Username must contain at least 3 characters.'
+        elif len(password) < 8:
+            error = 'Password must contain at least 8 characters.'
+        elif password != confirm_password:
+            error = 'Passwords do not match.'
+        elif User.objects.filter(username__iexact=username).exists():
+            error = 'That username is already in use.'
+        elif User.objects.filter(email__iexact=email).exists():
+            error = 'That email address is already registered.'
+        elif role not in {'student', 'placement_officer'}:
+            error = 'Please select a valid account type.'
+        else:
+            try:
+                user = User.objects.create_user(username=username, email=email, password=password)
+                group_name = 'Students' if role == 'student' else 'Placement Officers'
+                group, _ = Group.objects.get_or_create(name=group_name)
+                user.groups.add(group)
+                auth_login(request, user)
+                messages.success(request, 'Your PlaceTrack account has been created successfully.')
+                return redirect('dashboard')
+            except IntegrityError:
+                error = 'Unable to create the account. Please try again.'
+
+    return render(request, 'placements/signup.html', {'error': error})
 
 
 def logout_view(request):
@@ -94,19 +139,15 @@ def _add_branches(companies_qs):
 @login_required
 def companies_list(request):
     companies = Company.objects.annotate(shortlisted=Count('shortlists')).order_by('-created_at')
-    return render(request, 'placements/companies.html', {
-        'companies': _add_branches(companies),
-    })
+    return render(request, 'placements/companies.html', {'companies': _add_branches(companies)})
 
 
 @login_required
 def company_detail(request, pk):
-    company    = get_object_or_404(Company, pk=pk)
+    company = get_object_or_404(Company, pk=pk)
     shortlists = Shortlist.objects.filter(company=company).select_related('student')
     company.branches_display = [b.strip() for b in company.eligible_branches.split(',') if b.strip()]
-    return render(request, 'placements/company_detail.html', {
-        'company': company, 'shortlists': shortlists,
-    })
+    return render(request, 'placements/company_detail.html', {'company': company, 'shortlists': shortlists})
 
 
 @login_required
@@ -116,9 +157,7 @@ def shortlists_view(request):
     if company_id:
         shortlists = shortlists.filter(company_id=company_id)
     return render(request, 'placements/shortlists.html', {
-        'shortlists':       shortlists[:300],
-        'companies':        Company.objects.all(),
-        'selected_company': company_id,
+        'shortlists': shortlists[:300], 'companies': Company.objects.all(), 'selected_company': company_id,
     })
 
 
