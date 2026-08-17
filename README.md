@@ -1,216 +1,284 @@
 # 🎓 PlaceTrack — Placement Eligibility & Auto-Shortlisting System
 
-A full-stack **Django REST Framework + MySQL + HTML/CSS** backend automation platform for college placement management.
+---
+
+A full-stack Placement Management Platform built using **Python, Django, Django REST Framework, PostgreSQL/MySQL, JWT Authentication, and Excel Processing Automation**.
+
+The system automates the entire placement eligibility verification and candidate shortlisting process, eliminating manual Excel filtering and reducing placement officer workload.
+
+🌐 **Live Demo:** https://placement-eligibility-ivf2.onrender.com/
 
 ---
 
-## 🛠 Tech Stack
-- **Backend**: Python 3.10+, Django 4.2, Django REST Framework
-- **Database**: MySQL 8.0
-- **Auth**: JWT (djangorestframework-simplejwt)
-- **Frontend**: Django Templates + HTML/CSS (custom design system)
-- **File Upload**: CSV and Excel (.xlsx) processing via openpyxl
+# 🚀 Problem Statement
+
+In many colleges, placement officers manually verify student eligibility for every company.
+
+The traditional process involves:
+
+- Collecting student records in Excel sheets
+- Verifying CGPA criteria manually
+- Checking active backlogs
+- Filtering branch eligibility
+- Creating shortlist sheets manually
+- Repeating the process for every company
+
+This process is:
+
+❌ Time-consuming
+
+❌ Error-prone
+
+❌ Difficult to scale
+
+❌ Dependent on manual effort
 
 ---
 
-## ⚙️ Setup Instructions (WSL / Ubuntu / Linux)
+# 💡 Solution
 
-### Step 1 — Install Python packages
-```bash
-pip install -r requirements.txt
-```
+PlaceTrack automates the complete eligibility verification workflow.
 
-### Step 2 — Create MySQL Database
-Open MySQL shell:
-```sql
-CREATE DATABASE placement_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'placement_user'@'localhost' IDENTIFIED BY 'yourpassword';
-GRANT ALL PRIVILEGES ON placement_db.* TO 'placement_user'@'localhost';
-FLUSH PRIVILEGES;
-```
+Placement officers can:
 
-### Step 3 — Update settings.py
-Edit `placement_system/settings.py`:
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'placement_db',
-        'USER': 'root',         # or 'placement_user'
-        'PASSWORD': 'yourpassword',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-    }
-}
-```
+- Upload student records
+- Configure company eligibility rules
+- Automatically generate eligible candidates
+- Create instant shortlists
+- Track placement statistics
+- Manage multiple companies from one dashboard
 
-### Step 4 — Run Migrations
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-### Step 5 — Create Admin User
-```bash
-python manage.py createsuperuser
-```
-When prompted, also set `role = admin` via Django Admin or shell:
-```python
-python manage.py shell
->>> from placements.models import User
->>> u = User.objects.get(username='admin')
->>> u.role = 'admin'
->>> u.save()
-```
-
-### Step 6 — Run the Server
-```bash
-python manage.py runserver
-```
-
-Open browser: **http://127.0.0.1:8000/**
+The platform performs rule-based eligibility verification within seconds.
 
 ---
 
-## 🌐 Pages & URLs
+# ✨ Key Features
 
-| URL | Description |
-|-----|-------------|
-| `/` | Login page |
-| `/dashboard/` | Analytics dashboard |
-| `/students/` | Student list with filters |
-| `/companies/` | Company drive cards |
-| `/companies/<id>/` | Company detail + shortlist |
-| `/shortlists/` | All shortlists with export |
-| `/upload/` | Bulk CSV/Excel upload |
-| `/admin/` | Django admin panel |
-| `/api/` | REST API browser |
+### 🔐 Role-Based Authentication
 
----
+- Admin Login
+- Placement Officer Login
+- JWT Authentication
+- Protected Routes
 
-## 🔌 REST API Endpoints
+### 📊 Placement Dashboard
 
-### Auth
-```
-POST /api/token/          # Get JWT token
-POST /api/token/refresh/  # Refresh JWT
-```
+- Student Statistics
+- Company Statistics
+- Shortlisted Candidates
+- Placement Analytics
 
-### Students
-```
-GET    /api/students/              # List (filter: ?branch=CSE&min_cgpa=7&year=2025)
-POST   /api/students/              # Create one student
-POST   /api/students/upload/       # Bulk CSV/Excel upload
-GET    /api/students/{id}/         # Get student
-PUT    /api/students/{id}/         # Update student
-DELETE /api/students/{id}/         # Delete student
-```
+### 🏢 Company Management
 
-### Companies
-```
-GET    /api/companies/                          # List
-POST   /api/companies/                          # Create
-POST   /api/companies/{id}/generate_shortlist/  # ⚡ Run eligibility engine
-GET    /api/companies/{id}/shortlist/           # View company shortlist
-```
+- Add Companies
+- Define Eligibility Rules
+- Package Tracking
+- Branch Eligibility
 
-### Shortlists
-```
-GET  /api/shortlists/         # List (filter: ?company=1&status=shortlisted)
-GET  /api/shortlists/export/  # Download CSV (filter: ?company=1)
-```
+### 📄 Student Data Processing
 
-### Dashboard
-```
-GET  /api/dashboard/  # Analytics stats
-```
+- CSV Upload
+- Excel Upload
+- Bulk Student Import
+- Data Validation
+
+### ⚡ Auto Shortlisting Engine
+
+Automatically verifies:
+
+- CGPA Criteria
+- Backlog Criteria
+- Branch Eligibility
+- Academic Conditions
+
+### 📈 Reporting
+
+- Eligible Students
+- Shortlisted Students
+- Company Wise Reports
+- Placement Summary
 
 ---
 
-## 🔐 Role-Based Access
+# 🏗 System Architecture
 
-| Role | Capabilities |
-|------|-------------|
-| **admin** | Full access, user management |
-| **officer** | Upload students, manage companies, generate shortlists |
-| **company** | View their own shortlist |
-| **student** | View own profile |
-
----
-
-## ⚡ Using the API with JWT
-
-1. Get token:
-```bash
-curl -X POST http://127.0.0.1:8000/api/token/ \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "yourpassword"}'
-```
-
-2. Store in browser console (for HTML frontend buttons):
-```javascript
-sessionStorage.setItem('jwt', 'YOUR_ACCESS_TOKEN_HERE')
-```
-
-3. Use in API calls:
-```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" http://127.0.0.1:8000/api/dashboard/
-```
+Student Dataset
+↓
+Data Upload Module
+↓
+Database Storage
+↓
+Eligibility Engine
+↓
+Shortlisting Module
+↓
+Dashboard & Reports
 
 ---
 
-## 📤 CSV Upload Format
+# 🛠 Tech Stack
 
-| Column | Required | Example |
-|--------|----------|---------|
-| name | ✅ | SAIMOULI |
-| roll_number | ✅ | 22KD1A0 |
-| email | ✅ | 22kd1a0@college.edu |
-| cgpa | ✅ | 8.57 |
-| backlogs | No | 0 |
-| branch | ✅ | CSE |
-| skills | No | Python,Django,SQL |
-| graduation_year | ✅ | 2026 |
-| phone | No | 9876543210 |
+## Backend
 
-Download sample CSV from the Upload page.
+- Python 3.12
+- Django 4.2
+- Django REST Framework
+
+## Database
+
+- PostgreSQL (Production)
+- MySQL (Development)
+
+## Authentication
+
+- JWT Authentication
+- Django Authentication System
+
+## Frontend
+
+- HTML5
+- CSS3
+- JavaScript
+- Django Templates
+
+## File Processing
+
+- OpenPyXL
+- CSV Processing
+
+## Deployment
+
+- Render
+- GitHub
+
+## Version Control
+
+- Git
+- GitHub
 
 ---
 
-## 🗂 Project Structure
+# 📂 Project Structure
 
-```
-placement_system/
-├── manage.py
-├── requirements.txt
-├── README.md
+```text
+PLACEMENT-ELIGIBILITY/
 │
-├── placement_system/          # Django project config
+├── placement_system/
 │   ├── settings.py
 │   ├── urls.py
 │   └── wsgi.py
 │
-└── placements/                # Main app
-    ├── models.py              # DB tables (Student, Company, Shortlist, ...)
-    ├── serializers.py         # DRF serializers
-    ├── views.py               # API ViewSets
-    ├── web_views.py           # HTML template views
-    ├── urls.py                # API URL routes
-    ├── web_urls.py            # HTML URL routes
-    ├── permissions.py         # Role-based permissions
-    ├── admin.py               # Django admin config
-    ├── apps.py
-    │
-    ├── services/
-    │   └── eligibility_engine.py   # Core rule engine
-    │
-    └── templates/
-        └── placements/
-            ├── base.html           # Layout + CSS design system
-            ├── login.html
-            ├── dashboard.html
-            ├── students.html
-            ├── companies.html
-            ├── company_detail.html
-            ├── shortlists.html
-            └── upload.html
+├── placements/
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── serializers.py
+│   ├── templates/
+│   └── static/
+│
+├── requirements.txt
+├── build.sh
+├── render.yaml
+└── manage.py
+```
+
+# 🔄 Workflow
+
+### Step 1
+
+Placement Officer logs into the platform.
+
+### Step 2
+
+Student records are uploaded through CSV/Excel.
+
+### Step 3
+
+Company eligibility criteria are configured.
+
+### Step 4
+
+System validates all student records.
+
+### Step 5
+
+Eligibility Engine applies rules automatically.
+
+### Step 6
+
+Shortlisted candidates are generated instantly.
+
+### Step 7
+
+Reports are displayed on dashboard.
+
+---
+
+# 📊 Impact
+
+### Before Automation
+
+- Manual Excel Filtering
+- Human Errors
+- Long Processing Time
+
+### After Automation
+
+✅ Faster Processing
+
+✅ Accurate Eligibility Verification
+
+✅ Reduced Manual Work
+
+✅ Scalable Placement Operations
+
+---
+
+# 🔒 Security Features
+
+- JWT Authentication
+- Session Management
+- Protected APIs
+- Role-Based Access Control
+- Secure Password Storage
+
+---
+
+# 🌍 Deployment
+
+Production Deployment:
+
+https://placement-eligibility-ivf2.onrender.com/
+
+Repository:
+
+https://github.com/SAIMOULIs/PLACEMENT-ELIGIBILITY
+
+---
+
+# 👨‍💻 Author
+
+**Bonu Sai Chandra Mouli**
+
+B.Tech Computer Science & Engineering
+
+Python Developer | Django Developer | Backend Engineer
+
+GitHub:
+https://github.com/SAIMOULIs
+
+Portfolio:
+https://saimoulis.github.io/PORTFOLIO/
+
+---
+
+# ⭐ Future Enhancements
+
+- AI-Based Placement Prediction
+- Resume Parsing
+- Email Notifications
+- Student Portal
+- Analytics Dashboard
+- Multi-College Support
+- Company Portal
+- Interview Scheduling
