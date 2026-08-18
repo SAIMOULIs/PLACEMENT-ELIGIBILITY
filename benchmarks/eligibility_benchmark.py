@@ -27,14 +27,15 @@ import time
 from pathlib import Path
 
 
+# Bootstrap the Django project before importing anything from the application.
+# The project structure contains placement_system/settings.py, so this is the
+# repository's actual settings module. Assignment (rather than setdefault)
+# deliberately overrides an accidentally inherited/empty CI environment value.
 ROOT = Path(__file__).resolve().parents[1]
 os.chdir(ROOT)
-sys.path.insert(0, str(ROOT))
-
-# This repository's Django project is placement_system (see
-# placement_system/settings.py and placement_system/wsgi.py). Django must know
-# the settings module before django.setup() is called.
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "placement_system.settings")
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+os.environ["DJANGO_SETTINGS_MODULE"] = "placement_system.settings"
 
 SIZES = (100, 500, 1_000, 5_000, 10_000)
 REPEATS = 5
@@ -113,15 +114,20 @@ def manual_style_filter(rows: list[dict]) -> int:
 
 
 def setup_django(db_path: str):
-    # Use a temporary SQLite database for the benchmark. This keeps the
-    # benchmark isolated from the repository's normal development/production DB.
+    """Configure the isolated benchmark DB, initialize Django, then migrate."""
+    # These environment values are read by placement_system.settings when
+    # django.setup() imports that settings module.
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
     os.environ["DEBUG"] = "True"
 
+    # Importing django itself is safe here: the project settings/models/services
+    # have not been imported, and DJANGO_SETTINGS_MODULE was set above.
     import django
 
     django.setup()
 
+    # Only after django.setup() is complete may Django management/models be
+    # imported or used.
     from django.core.management import call_command
 
     call_command("migrate", run_syncdb=True, verbosity=0, interactive=False)
@@ -160,6 +166,7 @@ def load_dataset(rows: list[dict]):
 
 
 def benchmark_size(rows: list[dict], repeats: int) -> dict:
+    # These imports occur only after setup_django() has called django.setup().
     from placements.models import Shortlist, SystemLog
     from placements.services.eligibility_engine import run_eligibility_engine
 
