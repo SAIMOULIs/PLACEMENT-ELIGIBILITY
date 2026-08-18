@@ -31,6 +31,10 @@ ROOT = Path(__file__).resolve().parents[1]
 os.chdir(ROOT)
 sys.path.insert(0, str(ROOT))
 
+# This repository's Django project is placement_system (see
+# placement_system/settings.py and placement_system/wsgi.py). Django must know
+# the settings module before django.setup() is called.
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "placement_system.settings")
 
 SIZES = (100, 500, 1_000, 5_000, 10_000)
 REPEATS = 5
@@ -104,12 +108,13 @@ def manual_style_filter(rows: list[dict]) -> int:
         if required_skills.intersection(student_skills):
             matched.append(row)
 
-    # Simulate producing the shortlist rows, rather than stopping at a count.
     shortlist_rows = [row["roll_number"] for row in matched]
     return len(shortlist_rows)
 
 
 def setup_django(db_path: str):
+    # Use a temporary SQLite database for the benchmark. This keeps the
+    # benchmark isolated from the repository's normal development/production DB.
     os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
     os.environ["DEBUG"] = "True"
 
@@ -166,8 +171,6 @@ def benchmark_size(rows: list[dict], repeats: int) -> dict:
     manual_counts = []
 
     for _ in range(repeats):
-        # Reset generated output so every timed automated run creates the same
-        # kind of shortlist workload. Resetting is outside the timed interval.
         Shortlist.objects.all().delete()
         SystemLog.objects.all().delete()
 
