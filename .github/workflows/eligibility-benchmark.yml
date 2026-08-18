@@ -1,0 +1,36 @@
+name: Eligibility Benchmark
+
+on:
+  push:
+    paths:
+      - "benchmarks/**"
+      - "placements/services/eligibility_engine.py"
+      - "placements/models.py"
+      - "placement_system/settings.py"
+      - "requirements.txt"
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run benchmark
+        run: python benchmarks/eligibility_benchmark.py --repeats 5
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: eligibility-benchmark-results
+          path: benchmarks/results.csv
